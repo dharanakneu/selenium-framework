@@ -1,0 +1,99 @@
+package com.automation.seleniumframework.tests;
+
+import com.automation.seleniumframework.base.BaseTest;
+import com.automation.seleniumframework.utils.ExcelUtil;
+import com.automation.seleniumframework.utils.ExtentReportManager;
+import org.openqa.selenium.By;
+import org.openqa.selenium.JavascriptExecutor;
+import org.openqa.selenium.WebElement;
+import org.openqa.selenium.support.ui.ExpectedConditions;
+import org.openqa.selenium.support.ui.Select;
+import org.openqa.selenium.support.ui.WebDriverWait;
+import org.testng.Assert;
+import org.testng.annotations.Test;
+
+import java.time.Duration;
+import java.util.Map;
+
+public class Scenario3_ReserveLibrarySpot extends BaseTest {
+
+    private static final String SCENARIO_NAME = "Scenario3_ReserveLibrarySpot";
+    private static final String DATA_FILE = "src/test/resources/testdata/TestData.xlsx";
+
+    @Test(priority = 3)
+    public void reserveSpot() throws InterruptedException {
+        test = ExtentReportManager.createTest(SCENARIO_NAME);
+
+        Map<String, String> data = ExcelUtil.readSheet(DATA_FILE, "Scenario3_Library").get(0);
+        String libraryUrl = data.get("LibraryUrl");
+        String seatStyle = data.get("SeatStyle");
+        String capacity = data.get("Capacity");
+
+        WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(30));
+        JavascriptExecutor js = (JavascriptExecutor) driver;
+
+        executeStep(SCENARIO_NAME, "01_openLibraryWebsite", () -> {
+            driver.get(libraryUrl);
+            wait.until(ExpectedConditions.titleContains("Library"));
+
+            try {
+                WebElement rejectButton = new WebDriverWait(driver, Duration.ofSeconds(5))
+                        .until(ExpectedConditions.elementToBeClickable(
+                                By.xpath("//button[contains(text(),'Reject') or contains(text(),'reject')]")));
+                js.executeScript("arguments[0].click();", rejectButton);
+            } catch (Exception e) {
+                System.out.println("No cookie consent popup found - continuing.");
+            }
+        });
+
+        executeStep(SCENARIO_NAME, "02_clickReserveStudyRoom", () -> {
+            WebElement reserveLink = wait.until(ExpectedConditions.presenceOfElementLocated(
+                    By.xpath("//a[contains(text(),'Reserve A Study Room')]")));
+            js.executeScript("arguments[0].click();", reserveLink);
+            wait.until(ExpectedConditions.urlContains("library-rooms-spaces"));
+        });
+
+        executeStep(SCENARIO_NAME, "03_selectBoston", () -> {
+            WebElement bostonButton = wait.until(ExpectedConditions.presenceOfElementLocated(
+                    By.xpath("//img[contains(@src, 'Boston.png')]")));
+            js.executeScript("arguments[0].click();", bostonButton);
+            wait.until(ExpectedConditions.urlContains("ideas/rooms-spaces"));
+        });
+
+        executeStep(SCENARIO_NAME, "04_clickBookARoom", () -> {
+            WebElement bookButton = wait.until(ExpectedConditions.presenceOfElementLocated(
+                    By.xpath("//a[contains(text(), 'Book a Room')]")));
+            js.executeScript("arguments[0].click();", bookButton);
+            wait.until(ExpectedConditions.or(
+                    ExpectedConditions.urlContains("northeastern.libcal.com"),
+                    ExpectedConditions.urlContains("reserve/spaces/studyspace")
+            ));
+        });
+
+        executeStep(SCENARIO_NAME, "05_selectSeatStyle", () -> {
+            WebElement seatStyleDropdown = wait.until(ExpectedConditions.presenceOfElementLocated(By.id("gid")));
+            new Select(seatStyleDropdown).selectByVisibleText(seatStyle);
+        });
+
+        executeStep(SCENARIO_NAME, "06_selectCapacity", () -> {
+            WebElement capacityDropdown = wait.until(ExpectedConditions.presenceOfElementLocated(By.id("capacity")));
+            new Select(capacityDropdown).selectByVisibleText(capacity);
+        });
+
+        executeStep(SCENARIO_NAME, "07_scrollToBottom", () -> {
+            js.executeScript("window.scrollTo(0, document.body.scrollHeight);");
+        });
+
+        boolean urlValid = driver.getCurrentUrl().contains("libcal.com/spaces");
+        String actualUrl = driver.getCurrentUrl();
+
+        ExtentReportManager.logResult(
+                "Room availability page reached with filters applied",
+                "URL contains 'libcal.com/spaces' after filtering",
+                "Actual URL: " + actualUrl,
+                urlValid
+        );
+
+        Assert.assertTrue(urlValid, "Expected to land on the filtered LibCal spaces page. Actual URL: " + actualUrl);
+    }
+}
