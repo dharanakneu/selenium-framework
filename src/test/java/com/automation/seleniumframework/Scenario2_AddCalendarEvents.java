@@ -121,10 +121,24 @@ public class Scenario2_AddCalendarEvents extends BaseTest {
                 WebElement toInput = driver.findElement(
                         By.xpath("//input[@data-testid='event-form-end-time']"));
                 toInput.click();
-                toInput.clear();
+                // .clear() doesn't work on this React combobox - Canvas's default
+                // "11:59 PM" stays and our value gets appended ("11:59 PM3:00 PM").
+                // Select-all + delete to truly empty it first.
+                toInput.sendKeys(Keys.chord(Keys.COMMAND, "a"));
+                toInput.sendKeys(Keys.DELETE);
                 toInput.sendKeys(endTime);
 
-                toInput.sendKeys(Keys.TAB);
+                // Canvas auto-fills End = Start + 1h and this is a combobox, so
+                // TAB reverts to that auto value. Instead pick the exact option
+                // from the dropdown (fall back to ENTER) so the Excel End time sticks.
+                try {
+                    WebElement endOption = new WebDriverWait(driver, Duration.ofSeconds(5))
+                            .until(ExpectedConditions.elementToBeClickable(
+                                    By.xpath("//*[@role='option'][normalize-space(.)='" + endTime + "']")));
+                    endOption.click();
+                } catch (Exception noOption) {
+                    toInput.sendKeys(Keys.ENTER);
+                }
 
 
                 WebElement picker = wait.until(ExpectedConditions.elementToBeClickable(
@@ -182,9 +196,19 @@ public class Scenario2_AddCalendarEvents extends BaseTest {
                 By.xpath("//input[@data-testid='edit-calendar-event-form-context']")));
         calendarInput.click();
 
-        WebElement option = wait.until(ExpectedConditions.elementToBeClickable(
-                By.xpath("//*[@role='option'][contains(text(),'" + calendarName + "')]")));
-        option.click();
+        // The dropdown options appear a moment after the click. With the 10s
+        // implicit wait active, the FIRST explicit poll blocks the full 10s if
+        // options aren't rendered yet - that's the ~15s lag. Drop the implicit
+        // wait to 0 here so the explicit wait polls every 500ms instead.
+        // contains(normalize-space(.)) matches the option's nested <span> text.
+        driver.manage().timeouts().implicitlyWait(Duration.ZERO);
+        try {
+            WebElement option = wait.until(ExpectedConditions.elementToBeClickable(
+                    By.xpath("//*[@role='option'][contains(normalize-space(.),'" + calendarName + "')]")));
+            option.click();
+        } finally {
+            driver.manage().timeouts().implicitlyWait(Duration.ofSeconds(10));
+        }
     }
 
     private void demoPause(int seconds) {
