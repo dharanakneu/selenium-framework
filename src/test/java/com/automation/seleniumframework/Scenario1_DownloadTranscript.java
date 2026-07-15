@@ -253,16 +253,35 @@ public class Scenario1_DownloadTranscript extends BaseTest {
 
     private void selectAngularDropdown(String containerId, String optionText) {
         WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(15));
+        By selectedValue = By.cssSelector("#" + containerId + " .select2-choice");
 
-        // Click the visible dropdown box to open it
-        WebElement dropdownToggle = wait.until(ExpectedConditions.elementToBeClickable(
-                By.cssSelector("#" + containerId + " .select2-choice")));
-        dropdownToggle.click();
+        // EXACT-text match, not contains(): a loose contains('Graduate') also
+        // matches 'Undergraduate' and can leave the widget on its 'All Levels'
+        // default. Also look in select2's body-level '.select2-drop', since the
+        // option list is often rendered there rather than inside the container.
+        By exactOption = By.xpath(
+                "//div[@id='" + containerId + "']//li[normalize-space(.)='" + optionText + "']"
+              + " | //div[contains(@class,'select2-drop')]//li[normalize-space(.)='" + optionText + "']");
 
-        // Click the matching option once the list renders
-        WebElement option = wait.until(ExpectedConditions.elementToBeClickable(
-                By.xpath("//div[@id='" + containerId + "']//li[contains(.,'" + optionText + "')]")));
-        option.click();
+        for (int attempt = 1; attempt <= 2; attempt++) {
+            // Open the dropdown.
+            wait.until(ExpectedConditions.elementToBeClickable(selectedValue)).click();
+
+            // Native click - select2 reacts to real mouse events, not JS clicks.
+            wait.until(ExpectedConditions.elementToBeClickable(exactOption)).click();
+
+            // Verify the widget actually shows the chosen option (retry once).
+            try {
+                wait.until(ExpectedConditions.textToBePresentInElementLocated(selectedValue, optionText));
+                return;
+            } catch (Exception notSelectedYet) {
+                if (attempt == 2) {
+                    String actual = driver.findElement(selectedValue).getText();
+                    throw new IllegalStateException("Failed to select '" + optionText + "' in #"
+                            + containerId + " - still shows '" + actual + "'");
+                }
+            }
+        }
     }
 
 
