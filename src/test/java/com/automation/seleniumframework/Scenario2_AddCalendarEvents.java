@@ -100,7 +100,6 @@ public class Scenario2_AddCalendarEvents extends BaseTest {
 
                 driver.findElement(By.xpath("//input[@data-testid='edit-calendar-event-form-title']"))
                         .sendKeys(title);
-                demoPause(1);
 
                 WebElement calendarTrigger = wait.until(ExpectedConditions.elementToBeClickable(
                         By.xpath("//button[@data-popover-trigger='true'][.//span[contains(text(),'Choose a date')]]")));
@@ -110,7 +109,6 @@ public class Scenario2_AddCalendarEvents extends BaseTest {
                         By.xpath("//button[@data-cid='Calendar.Day'][.//span[contains(@class,'screenReaderContent') and text()='"
                                 + date + "']]")));
                 dayButton.click();
-                demoPause(1);
 
                 WebElement fromInput = driver.findElement(
                         By.xpath("//input[@data-testid='event-form-start-time']"));
@@ -119,7 +117,6 @@ public class Scenario2_AddCalendarEvents extends BaseTest {
                 fromInput.sendKeys(startTime);
                 fromInput.sendKeys(Keys.TAB);
 
-                demoPause(2);
 
                 WebElement toInput = driver.findElement(
                         By.xpath("//input[@data-testid='event-form-end-time']"));
@@ -129,7 +126,6 @@ public class Scenario2_AddCalendarEvents extends BaseTest {
 
                 toInput.sendKeys(Keys.TAB);
 
-                demoPause(2);
 
                 WebElement picker = wait.until(ExpectedConditions.elementToBeClickable(
                         By.xpath("//input[@data-testid='frequency-picker']")));
@@ -141,10 +137,8 @@ public class Scenario2_AddCalendarEvents extends BaseTest {
                 WebElement locationInput = wait.until(ExpectedConditions.elementToBeClickable(
                         By.xpath("//input[@data-testid='edit-calendar-event-form-location']")));
                 locationInput.sendKeys(location);
-                demoPause(1);
 
                 selectCalendarDropdown(calendarName);
-                demoPause(1);
 
 
                 WebElement submit = wait.until(ExpectedConditions.presenceOfElementLocated(
