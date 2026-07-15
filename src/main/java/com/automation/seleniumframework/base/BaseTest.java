@@ -8,6 +8,7 @@ import org.openqa.selenium.By;
 import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.WebElement;
 import org.openqa.selenium.chrome.ChromeDriver;
+import org.openqa.selenium.chrome.ChromeOptions;
 import org.openqa.selenium.support.ui.ExpectedConditions;
 import org.openqa.selenium.support.ui.WebDriverWait;
 import org.testng.annotations.AfterMethod;
@@ -15,8 +16,10 @@ import org.testng.annotations.AfterSuite;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.BeforeSuite;
 
+import java.io.File;
 import java.time.Duration;
-import java.util.Scanner;
+import java.util.HashMap;
+import java.util.Map;
 
 /**
  * Every scenario test class extends this. Provides:
@@ -31,6 +34,15 @@ public class BaseTest {
     protected WebDriver driver;
     protected ExtentTest test;
 
+    /**
+     * Dedicated folder that ALL browser downloads are routed to. Scenario 4
+     * (the required negative) checks this folder: because the anonymous DRS zip
+     * download never completes, the folder stays empty and the scenario fails
+     * for the right reason - not because of a hard-coded/foreign path.
+     */
+    public static final String DOWNLOAD_DIR =
+            System.getProperty("user.dir") + File.separator + "target" + File.separator + "test-downloads";
+
     @BeforeSuite
     public void initReport() {
         // Touches the singleton once so the report file exists even if a
@@ -41,7 +53,20 @@ public class BaseTest {
     @BeforeMethod
     public void setUp() {
         WebDriverManager.chromedriver().setup();
-        driver = new ChromeDriver();
+
+        // Route downloads to our controlled folder and suppress the save dialog.
+        File downloadDir = new File(DOWNLOAD_DIR);
+        downloadDir.mkdirs();
+        Map<String, Object> prefs = new HashMap<>();
+        prefs.put("download.default_directory", downloadDir.getAbsolutePath());
+        prefs.put("download.prompt_for_download", false);
+        prefs.put("download.directory_upgrade", true);
+        prefs.put("safebrowsing.enabled", true);
+
+        ChromeOptions options = new ChromeOptions();
+        options.setExperimentalOption("prefs", prefs);
+
+        driver = new ChromeDriver(options);
         driver.manage().window().maximize();
         driver.manage().timeouts().implicitlyWait(Duration.ofSeconds(10));
     }
@@ -158,6 +183,79 @@ public class BaseTest {
         } catch (Exception e) {
             System.out.println("No Duo push prompt detected - continuing without it.");
             driver.switchTo().defaultContent();
+        }
+    }
+
+    /**
+     * Switches the driver to the most-recently-opened window/tab. Many NEU
+     * links (e.g. the Registrar's Academic Calendar) open in a NEW tab; the
+     * driver keeps pointing at the old one until we explicitly switch. If a
+     * window whose URL contains {@code preferUrlSubstring} exists, we land
+     * there; otherwise we land on whatever tab isn't the current one.
+     */
+    protected void switchToNewestWindow(String currentHandle, String preferUrlSubstring) {
+        String fallback = null;
+        for (String handle : driver.getWindowHandles()) {
+            if (handle.equals(currentHandle)) {
+                continue;
+            }
+            fallback = handle;
+            driver.switchTo().window(handle);
+            if (preferUrlSubstring != null
+                    && driver.getCurrentUrl().toLowerCase().contains(preferUrlSubstring.toLowerCase())) {
+                return; // matched the page we wanted
+            }
+        }
+        if (fallback != null) {
+            driver.switchTo().window(fallback);
+        }
+        // No other window - stay where we are (link opened in the same tab).
+    }
+
+    /**
+     * Scans every open window/tab and switches to the first one whose URL
+     * contains {@code urlSubstring}. More reliable than "newest window" when a
+     * link might open either in the same tab or a new one - we just go to
+     * whichever tab is showing the page we want. If none match, the driver is
+     * left on the last window scanned.
+     */
+    protected void switchToWindowByUrl(String urlSubstring) {
+        String needle = urlSubstring.toLowerCase();
+        for (String handle : driver.getWindowHandles()) {
+            driver.switchTo().window(handle);
+            if (driver.getCurrentUrl().toLowerCase().contains(needle)) {
+                return;
+            }
+        }
+    }
+
+    /**
+     * Some pages embed content (like the 25Live academic calendar widget)
+     * inside an iframe, so elements aren't reachable from the top document.
+     * This scans the top document and each iframe, leaving the driver focused
+     * on the first frame that contains {@code locator}. Returns true if found.
+     *
+     * Temporarily drops the implicit wait to 0 so scanning empty frames is
+     * fast, then restores it.
+     */
+    protected boolean focusFrameContaining(By locator) {
+        driver.manage().timeouts().implicitlyWait(Duration.ZERO);
+        try {
+            driver.switchTo().defaultContent();
+            if (!driver.findElements(locator).isEmpty()) {
+                return true;
+            }
+            for (WebElement frame : driver.findElements(By.tagName("iframe"))) {
+                driver.switchTo().defaultContent();
+                driver.switchTo().frame(frame);
+                if (!driver.findElements(locator).isEmpty()) {
+                    return true; // leave driver focused inside this frame
+                }
+            }
+            driver.switchTo().defaultContent();
+            return false;
+        } finally {
+            driver.manage().timeouts().implicitlyWait(Duration.ofSeconds(10));
         }
     }
 
