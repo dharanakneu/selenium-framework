@@ -45,6 +45,7 @@ public class Scenario3_ReserveLibrarySpot extends BaseTest {
                 System.out.println("No cookie consent popup found - continuing.");
             }
         });
+        demoPause(3);
 
         executeStep(SCENARIO_NAME, "02_clickReserveStudyRoom", () -> {
             WebElement reserveLink = wait.until(ExpectedConditions.presenceOfElementLocated(
@@ -52,6 +53,7 @@ public class Scenario3_ReserveLibrarySpot extends BaseTest {
             js.executeScript("arguments[0].click();", reserveLink);
             wait.until(ExpectedConditions.urlContains("library-rooms-spaces"));
         });
+        demoPause(3);
 
         executeStep(SCENARIO_NAME, "03_selectBoston", () -> {
             WebElement bostonButton = wait.until(ExpectedConditions.presenceOfElementLocated(
@@ -59,6 +61,7 @@ public class Scenario3_ReserveLibrarySpot extends BaseTest {
             js.executeScript("arguments[0].click();", bostonButton);
             wait.until(ExpectedConditions.urlContains("ideas/rooms-spaces"));
         });
+        demoPause(3);
 
         executeStep(SCENARIO_NAME, "04_clickBookARoom", () -> {
             WebElement bookButton = wait.until(ExpectedConditions.presenceOfElementLocated(
@@ -69,31 +72,59 @@ public class Scenario3_ReserveLibrarySpot extends BaseTest {
                     ExpectedConditions.urlContains("reserve/spaces/studyspace")
             ));
         });
+        demoPause(3);
 
         executeStep(SCENARIO_NAME, "05_selectSeatStyle", () -> {
             WebElement seatStyleDropdown = wait.until(ExpectedConditions.presenceOfElementLocated(By.id("gid")));
             new Select(seatStyleDropdown).selectByVisibleText(seatStyle);
         });
+        demoPause(2);
 
         executeStep(SCENARIO_NAME, "06_selectCapacity", () -> {
             WebElement capacityDropdown = wait.until(ExpectedConditions.presenceOfElementLocated(By.id("capacity")));
             new Select(capacityDropdown).selectByVisibleText(capacity);
         });
+        demoPause(2);
 
-        executeStep(SCENARIO_NAME, "07_scrollToBottom", () -> {
+        // ---- Step 7 (NEW per assignment V2): Select an available time slot ----
+        executeStep(SCENARIO_NAME, "07_selectAvailableSlot", () -> {
+            WebElement availableSlot = wait.until(ExpectedConditions.elementToBeClickable(
+                    By.cssSelector("a.fc-timeline-event.s-lc-eq-avail")));
+            js.executeScript("arguments[0].click();", availableSlot);
+        });
+        demoPause(3);
+
+        // ---- Step 8: Scroll to bottom ----
+        executeStep(SCENARIO_NAME, "08_scrollToBottom", () -> {
             js.executeScript("window.scrollTo(0, document.body.scrollHeight);");
         });
+        demoPause(3);
 
+        // ---- Verification ----
         boolean urlValid = driver.getCurrentUrl().contains("libcal.com/spaces");
         String actualUrl = driver.getCurrentUrl();
 
+        boolean slotSelected = !driver.findElements(By.cssSelector(".s-lc-pending-booking")).isEmpty();
+
+
         ExtentReportManager.logResult(
-                "Room availability page reached with filters applied",
-                "URL contains 'libcal.com/spaces' after filtering",
-                "Actual URL: " + actualUrl,
-                urlValid
+                "An available time slot is selected",
+                "Booking details panel (.s-lc-pending-booking) is visible at the bottom of the page after scrolling",
+                slotSelected ? "Booking details panel found - slot selection confirmed" : "Booking details panel not found",
+                slotSelected
         );
 
         Assert.assertTrue(urlValid, "Expected to land on the filtered LibCal spaces page. Actual URL: " + actualUrl);
+        Assert.assertTrue(slotSelected, "Expected the booking details panel (.s-lc-pending-booking) to be visible after selecting a slot");
+    }
+
+    /** Keeps the browser on screen for {@code seconds} so each step is visible
+     *  and explainable during the live presentation. */
+    private void demoPause(int seconds) {
+        try {
+            Thread.sleep(seconds * 1000L);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        }
     }
 }

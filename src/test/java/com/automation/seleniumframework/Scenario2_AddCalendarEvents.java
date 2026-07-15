@@ -49,7 +49,7 @@ public class Scenario2_AddCalendarEvents extends BaseTest {
         String username = login.get("Username");
         String password = login.get("Password");
 
-        WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(40));
+        WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(20));
 
         // ---- Step 1: Login to Canvas ----
         executeStep(SCENARIO_NAME, "01_loginToCanvas", () -> loginToNEU(canvasUrl, username, password));
@@ -57,7 +57,7 @@ public class Scenario2_AddCalendarEvents extends BaseTest {
         // ---- Step 2: Handle Canvas-specific Duo "trust this browser" prompt ----
         executeStep(SCENARIO_NAME, "02_handleDuoTrustBrowser", () -> {
             try {
-                WebElement trustBrowserButton = new WebDriverWait(driver, Duration.ofSeconds(10))
+                WebElement trustBrowserButton = new WebDriverWait(driver, Duration.ofSeconds(3))
                         .until(ExpectedConditions.elementToBeClickable(By.id("trust-browser-button")));
                 trustBrowserButton.click();
             } catch (Exception e) {
@@ -100,6 +100,7 @@ public class Scenario2_AddCalendarEvents extends BaseTest {
 
                 driver.findElement(By.xpath("//input[@data-testid='edit-calendar-event-form-title']"))
                         .sendKeys(title);
+                demoPause(1);
 
                 WebElement calendarTrigger = wait.until(ExpectedConditions.elementToBeClickable(
                         By.xpath("//button[@data-popover-trigger='true'][.//span[contains(text(),'Choose a date')]]")));
@@ -109,6 +110,7 @@ public class Scenario2_AddCalendarEvents extends BaseTest {
                         By.xpath("//button[@data-cid='Calendar.Day'][.//span[contains(@class,'screenReaderContent') and text()='"
                                 + date + "']]")));
                 dayButton.click();
+                demoPause(1);
 
                 WebElement fromInput = driver.findElement(
                         By.xpath("//input[@data-testid='event-form-start-time']"));
@@ -117,12 +119,17 @@ public class Scenario2_AddCalendarEvents extends BaseTest {
                 fromInput.sendKeys(startTime);
                 fromInput.sendKeys(Keys.TAB);
 
+                demoPause(2);
+
                 WebElement toInput = driver.findElement(
                         By.xpath("//input[@data-testid='event-form-end-time']"));
                 toInput.click();
                 toInput.clear();
                 toInput.sendKeys(endTime);
+
                 toInput.sendKeys(Keys.TAB);
+
+                demoPause(2);
 
                 WebElement picker = wait.until(ExpectedConditions.elementToBeClickable(
                         By.xpath("//input[@data-testid='frequency-picker']")));
@@ -134,8 +141,11 @@ public class Scenario2_AddCalendarEvents extends BaseTest {
                 WebElement locationInput = wait.until(ExpectedConditions.elementToBeClickable(
                         By.xpath("//input[@data-testid='edit-calendar-event-form-location']")));
                 locationInput.sendKeys(location);
+                demoPause(1);
 
                 selectCalendarDropdown(calendarName);
+                demoPause(1);
+
 
                 WebElement submit = wait.until(ExpectedConditions.presenceOfElementLocated(
                         By.xpath("//button[@data-testid='edit-calendar-event-submit-button']")));
@@ -148,6 +158,8 @@ public class Scenario2_AddCalendarEvents extends BaseTest {
             });
 
             eventNumber++;
+            demoPause(2);
+
         }
 
         // ---- Step 5: Verify both events appear on the calendar ----
@@ -179,5 +191,13 @@ public class Scenario2_AddCalendarEvents extends BaseTest {
         WebElement option = wait.until(ExpectedConditions.elementToBeClickable(
                 By.xpath("//*[@role='option'][contains(text(),'" + calendarName + "')]")));
         option.click();
+    }
+
+    private void demoPause(int seconds) {
+        try {
+            Thread.sleep(seconds * 1000L);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        }
     }
 }

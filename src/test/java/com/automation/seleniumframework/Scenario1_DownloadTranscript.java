@@ -66,17 +66,20 @@ public class Scenario1_DownloadTranscript extends BaseTest {
         // ---- Step 1: Login to main NEU portal ----
         executeStep(SCENARIO_NAME, "01_loginToPortal", () ->
                 loginToNEU(portalUrl, username, password));
+        demoPause(2);
 
         // ---- Step 2: Navigate Student Hub -> Resources -> Academics -> My Transcript ----
         executeStep(SCENARIO_NAME, "02_clickResources", () -> {
             WebElement resources = wait.until(ExpectedConditions.elementToBeClickable(resourcesTab));
             resources.click();
         });
+        demoPause(2);
 
         executeStep(SCENARIO_NAME, "03_clickAcademics", () -> {
             WebElement academics = wait.until(ExpectedConditions.visibilityOfElementLocated(academicsText));
             academics.click();
         });
+        demoPause(2);
 
         // "My Transcript" opens a new tab - handle window switching
         Set<String> beforeClickHandles = driver.getWindowHandles();
@@ -91,6 +94,7 @@ public class Scenario1_DownloadTranscript extends BaseTest {
                 break;
             }
         }
+        demoPause(2);
 
         // ---- Step 3: Separate Banner login (with Duo) ----
         executeStep(SCENARIO_NAME, "05_loginToBannerTranscriptSystem", () -> {
@@ -259,5 +263,14 @@ public class Scenario1_DownloadTranscript extends BaseTest {
         WebElement option = wait.until(ExpectedConditions.elementToBeClickable(
                 By.xpath("//div[@id='" + containerId + "']//li[contains(.,'" + optionText + "')]")));
         option.click();
+    }
+
+
+    private void demoPause(int seconds) {
+        try {
+            Thread.sleep(seconds * 1000L);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        }
     }
 }
