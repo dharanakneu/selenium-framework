@@ -2,7 +2,12 @@ package com.automation.seleniumframework.utils;
 
 import com.aventstack.extentreports.ExtentReports;
 import com.aventstack.extentreports.ExtentTest;
+import com.aventstack.extentreports.MediaEntityBuilder;
 import com.aventstack.extentreports.reporter.ExtentSparkReporter;
+
+import java.nio.file.Files;
+import java.nio.file.Paths;
+import java.util.Base64;
 
 /**
  * Singleton wrapper around ExtentReports. Produces the final HTML report
@@ -55,9 +60,19 @@ public class ExtentReportManager {
         }
     }
 
+    /**
+     * Embeds the screenshot INTO the HTML report as a base64 data URI, rather
+     * than linking to the file on disk. This makes the report fully
+     * self-contained: the images display no matter where the HTML is opened,
+     * moved, or emailed - unlike addScreenCaptureFromPath, which writes a
+     * machine-specific file path that breaks when the report is relocated.
+     */
     public static void attachScreenshot(String path, String title) {
         try {
-            test.info(title).addScreenCaptureFromPath(path);
+            byte[] bytes = Files.readAllBytes(Paths.get(path));
+            String base64 = Base64.getEncoder().encodeToString(bytes);
+            test.info(title,
+                    MediaEntityBuilder.createScreenCaptureFromBase64String(base64).build());
         } catch (Exception e) {
             test.warning("Could not attach screenshot: " + path);
         }

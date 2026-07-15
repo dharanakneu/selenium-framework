@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE suite SYSTEM "https://testng.org/testng-1.0.dtd">
+
+<!--
+  Runs all 5 scenarios in order, one after another, with no manual
+  intervention (assignment requirement #3). Each scenario is its own class,
+  so @Test(priority=...) alone can't order across classes - this file does.
+  A failure in Scenario 4 does NOT stop the suite; TestNG continues to
+  Scenario 5 automatically.
+-->
+<suite name="INFO6255_Selenium_Suite" verbose="1">
+    <test name="AllScenariosInOrder" preserve-order="true">
+        <classes>
+            <class name="com.automation.seleniumframework.Scenario1_DownloadTranscript"/>
+            <class name="com.automation.seleniumframework.Scenario2_AddCalendarEvents"/>
+            <class name="com.automation.seleniumframework.Scenario3_ReserveLibrarySpot"/>
+            <class name="com.automation.seleniumframework.Scenario4_DownloadDataset_NEGATIVE"/>
+            <class name="com.automation.seleniumframework.Scenario5_UpdateAcademicCalendar"/>
+        </classes>
+    </test>
+</suite>

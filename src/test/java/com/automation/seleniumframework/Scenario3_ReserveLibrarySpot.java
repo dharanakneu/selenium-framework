@@ -1,4 +1,4 @@
-package com.automation.seleniumframework.tests;
+package com.automation.seleniumframework;
 
 import com.automation.seleniumframework.base.BaseTest;
 import com.automation.seleniumframework.utils.ExcelUtil;
